@@ -96,7 +96,7 @@ func (p *PlatformDataUnit) CreateStore(doPublish bool) error {
 		return err
 	}
 	for _, s := range storeInfo {
-		if Val(s.Published) == false {
+		if !Val(s.Published) {
 			_, _ = storeWrapper.DeleteStoreShort(&store.DeleteStoreParams{
 				Namespace: p.CLIConfig.ABNamespace,
 				StoreID:   Val(s.StoreID),
@@ -239,8 +239,15 @@ func (p *PlatformDataUnit) DeleteStore() error {
 		Namespace: p.CLIConfig.ABNamespace,
 		StoreID:   p.storeID,
 	})
+	if err != nil {
+		return err
+	}
 
-	return err
+	_, err = storeWrapper.DeletePublishedStoreShort(&store.DeletePublishedStoreParams{
+		Namespace: p.CLIConfig.ABNamespace,
+	})
+
+	return fmt.Errorf("delete published store error: %w", err)
 }
 
 func (p *PlatformDataUnit) CreateLootboxItems(itemCount int, rewardItemCount int, categoryPath string, doPublish bool) ([]SimpleLootboxItem, error) {

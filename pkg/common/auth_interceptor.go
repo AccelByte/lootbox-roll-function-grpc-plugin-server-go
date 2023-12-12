@@ -6,83 +6,67 @@ package common
 
 import (
 	"context"
-	"fmt"
+	"os"
 	"strings"
 
-	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/utils/auth/validator"
+	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/service/iam"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
 
-var (
-	Validator validator.AuthTokenValidator
-)
+var OAuth *iam.OAuth20Service
 
 func UnaryAuthServerIntercept(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	if Validator == nil {
+	if OAuth == nil {
 		return nil, errors.New("server token validator not set")
 	}
 
 	meta, found := metadata.FromIncomingContext(ctx)
 	if !found {
-		return nil, errors.New("metadata missing")
+		return nil, errors.New("metadata is missing")
 	}
 
-	authorization := meta["authorization"][0]
-	token := strings.TrimPrefix(authorization, "Bearer ")
+	if meta["authorization"] != nil {
+		authorization := meta["authorization"][0]
+		token := strings.TrimPrefix(authorization, "Bearer ")
+		extendNamespace := os.Getenv("AB_NAMESPACE")
 
-	namespace := getNamespace()
-	permission := getRequiredPermission()
+		err := OAuth.Validate(token, nil, &extendNamespace, nil)
+		if err != nil {
+			return nil, err
+		}
 
-	err := Validator.Validate(token, &permission, &namespace, nil)
-	if err != nil {
-		return nil, err
+		logrus.Println("server: token validated.")
 	}
 
 	return handler(ctx, req)
 }
 
 func StreamAuthServerIntercept(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-	if Validator == nil {
+	if OAuth == nil {
 		return errors.New("server token validator not set")
 	}
 
 	meta, found := metadata.FromIncomingContext(ss.Context())
 	if !found {
-		return errors.New("metadata missing")
+		return errors.New("metadata is missing")
 	}
 
-	authorization := meta["authorization"][0]
-	token := strings.TrimPrefix(authorization, "Bearer ")
+	if meta["authorization"] != nil {
+		authorization := meta["authorization"][0]
+		token := strings.TrimPrefix(authorization, "Bearer ")
+		extendNamespace := os.Getenv("AB_NAMESPACE")
 
-	namespace := getNamespace()
-	permission := getRequiredPermission()
-	var userId *string
+		err := OAuth.Validate(token, nil, &extendNamespace, nil)
+		if err != nil {
+			return err
+		}
 
-	err := Validator.Validate(token, &permission, &namespace, userId)
-	if err != nil {
-		return err
+		logrus.Println("server: token validated.")
 	}
 
 	return handler(srv, ss)
-}
-
-func getAction() int {
-	return GetEnvInt("AB_ACTION", 2)
-}
-
-func getNamespace() string {
-	return GetEnv("AB_NAMESPACE", "accelbyte")
-}
-
-func getResourceName() string {
-	return GetEnv("AB_RESOURCE_NAME", "CHATGRPCSERVICE")
-}
-
-func getRequiredPermission() validator.Permission {
-	return validator.Permission{
-		Action:   getAction(),
-		Resource: fmt.Sprintf("NAMESPACE:%s:%s", getNamespace(), getResourceName()),
-	}
 }

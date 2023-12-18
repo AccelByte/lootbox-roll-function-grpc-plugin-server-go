@@ -2,25 +2,23 @@ version: '3.5'
 
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
     ports:
       - "6565:6565"
       - "8080:8080"
-    extra_hosts:
-      - host.docker.internal:host-gateway
     environment:
       - OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://host.docker.internal:9411/api/v2/spans # Zipkin
-      - OTEL_SERVICE_NAME=LootBoxRollFunctionServiceGoServerDocker
+      - OTEL_SERVICE_NAME=LootBoxRollFunctionGrpcPluginServerGo
       - AB_CLIENT_ID=${AB_CLIENT_ID}
       - AB_CLIENT_SECRET=${AB_CLIENT_SECRET}
       - AB_BASE_URL=${AB_BASE_URL}
       - AB_NAMESPACE=${AB_NAMESPACE}
       - PLUGIN_GRPC_SERVER_AUTH_ENABLED
       - LOG_LEVEL=debug
-#      - GRPC_GO_LOG_VERBOSITY_LEVEL="99" # enable to debug grpc
-#      - GRPC_GO_LOG_SEVERITY_LEVEL=info # enable to debug grpc
+      # - GRPC_GO_LOG_VERBOSITY_LEVEL="99" # enable to debug grpc
+      # - GRPC_GO_LOG_SEVERITY_LEVEL=info # enable to debug grpc
+    extra_hosts:
+      - host.docker.internal:host-gateway
     logging:
       driver: loki
       options:

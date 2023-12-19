@@ -19,10 +19,10 @@ services:
       # - GRPC_GO_LOG_SEVERITY_LEVEL=info # enable to debug grpc
     extra_hosts:
       - host.docker.internal:host-gateway
-    logging:
-      driver: loki
-      options:
-        loki-url: http://host.docker.internal:3100/loki/api/v1/push
-        mode: non-blocking
-        max-buffer-size: 4m
-        loki-retries: "3"
+    # logging:
+    #   driver: loki
+    #   options:
+    #     loki-url: http://host.docker.internal:3100/loki/api/v1/push
+    #     mode: non-blocking
+    #     max-buffer-size: 4m
+    #     loki-retries: "3"

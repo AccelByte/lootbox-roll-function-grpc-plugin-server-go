@@ -203,7 +203,7 @@ the `gRPC server` needs to be exposed to the internet. To do this without requir
    command in `grpc-plugin-dependencies` directory instead of this sample app directory. 
    This way, the `gRPC server` will be called via `Envoy` service within `grpc-plugin-dependencies` stack instead of directly.
 
-5. [Create an OAuth Client](https://docs.accelbyte.io/guides/access/iam-client.html) with `confidential` client type with the following permissions. Keep the `Client ID` and `Client Secret`. This is different from the Oauth Client from the Prerequisites section and it is required by CLI demo app [here](demo/cli/) in the next step to register the `gRPC Server` URL.
+4. [Create an OAuth Client](https://docs.accelbyte.io/guides/access/iam-client.html) with `confidential` client type with the following permissions. Keep the `Client ID` and `Client Secret`. This is different from the Oauth Client from the Prerequisites section and it is required by CLI demo app [here](demo/cli/) in the next step to register the `gRPC Server` URL.
 
    - ADMIN:NAMESPACE:{namespace}:PLUGIN:CATALOG [READ, UPDATE, DELETE]
    - ADMIN:NAMESPACE:{namespace}:STORE [CREATE, READ, UPDATE, DELETE]
@@ -214,9 +214,10 @@ the `gRPC server` needs to be exposed to the internet. To do this without requir
 
    > :warning: **Oauth Client created in this step is different from the one from Prerequisites section:** It is required by CLI demo app [here](demo/cli/) in the next step to register the `gRPC Server` URL.
 
-6. Create a user for testing. Keep the `Username` and `Password`.
+5. Create a user for testing. Keep the `Username` and `Password`.
 
-7. Set the necessary environment variables in [.env.example](demo/cli/.env.example) and run the [Makefile](Makefile) CLI command. The CLI will set up the necessary configuration and then give you instructions on how to configure platform service. If successful, the word `[SUCCESS]` will be print out in the terminal.
+6. In [demo/cli](demo/cli) folder, create an `.env` file by copying the content of [.env.template](demo/cli/.env.template) file and
+set the required environment variables as shown below.
 
    ```
    AB_BASE_URL='https://demo.accelbyte.io'
@@ -227,10 +228,10 @@ the `gRPC server` needs to be exposed to the internet. To do this without requir
    AB_PASSWORD='xxxxxxxxxx'       # Use your Namespace Password
    GRPC_SERVER_URL='0.tcp.ap.ngrok.io:xxxxx'   # Use your ngrok forwarding URL without `https://`
    ```
-   then run in the terminal
+   Run the [Makefile](demo/cli/Makefile) commands to execute the CLI demo app.
    ```
    $ cd demo/cli
-   $ make run ENV_FILE_PATH=.env.example
+   $ make run ENV_FILE_PATH=.env
    ```
 
 > :warning: **Ngrok free plan has some limitations**: You may want to use paid plan if the traffic is high.

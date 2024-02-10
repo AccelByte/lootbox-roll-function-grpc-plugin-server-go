@@ -18,7 +18,7 @@ The following environment variables are used by this CLI demo app.
 Put environment variables in .env file:
 
 ```shell
-AB_BASE_URL='https://demo.accelbyte.io'
+AB_BASE_URL='https://test.accelbyte.io'
 AB_CLIENT_ID='<AccelByte IAM Client ID>'
 AB_CLIENT_SECRET='<AccelByte IAM Client Secret>'
 

@@ -6,7 +6,7 @@ set -e
 set -o pipefail
 #set -x
 
-APP_NAME=int-test-lootbox
+APP_NAME=int-test-lb
 
 get_code_verifier() 
 {

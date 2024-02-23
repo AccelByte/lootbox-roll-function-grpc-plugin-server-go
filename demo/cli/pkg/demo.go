@@ -195,8 +195,8 @@ func (p *PlatformDataUnit) CreateCurrency() error {
 		Body: &platformclientmodels.CurrencyCreate{
 			CurrencyCode:   Ptr(p.CurrencyCode),
 			CurrencySymbol: "USDT1$",
-			CurrencyType:   platformclientmodels.CurrencyCreateCurrencyTypeREAL,
-			Decimals:       2,
+			CurrencyType:   platformclientmodels.CurrencyCreateCurrencyTypeVIRTUAL,
+			Decimals:       0,
 		},
 	})
 
@@ -469,7 +469,7 @@ func (p *PlatformDataUnit) ConsumeItemEntitlement(userID string, entitlementID s
 		Namespace:     p.CLIConfig.ABNamespace,
 		EntitlementID: entitlementID,
 		UserID:        userID,
-		Body: &platformclientmodels.EntitlementDecrement{
+		Body: &platformclientmodels.AdminEntitlementDecrement{
 			UseCount:  count,
 			RequestID: RandomString(ALPHA_CHARS, 8),
 		},

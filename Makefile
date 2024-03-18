@@ -58,14 +58,16 @@ test_functional_local_hosted: proto
 
 test_functional_accelbyte_hosted: proto
 	@test -n "$(ENV_PATH)" || (echo "ENV_PATH is not set"; exit 1)
+ifeq ($(shell uname), Linux)
+	$(eval DARGS := -u $$(shell id -u):$$(shell id -g) --group-add $$(shell getent group docker | cut -d ':' -f 3))
+endif
 	docker build --tag lootbox-roll-function-test-functional -f test/functional/Dockerfile test/functional && \
 	docker run --rm -t \
 		--env-file $(ENV_PATH) \
 		-e GOCACHE=/data/.cache/go-build \
 		-e GOPATH=/data/.cache/mod \
 		-e DOCKER_CONFIG=/tmp/.docker \
-		-u $$(id -u):$$(id -g) \
-		--group-add $$(getent group docker | cut -d ':' -f 3) \
+		$(DARGS) \
 		-v /var/run/docker.sock:/var/run/docker.sock \
 		-v $$(pwd):/data \
 		-w /data lootbox-roll-function-test-functional bash ./test/functional/test-accelbyte-hosted.sh

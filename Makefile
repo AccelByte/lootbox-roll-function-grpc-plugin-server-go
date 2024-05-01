@@ -4,9 +4,12 @@
 
 SHELL := /bin/bash
 
-GOLANG_DOCKER_IMAGE := golang:1.19
 IMAGE_NAME := $(shell basename "$$(pwd)")-app
-BUILDER := grpc-plugin-server-builder
+BUILDER := extend-builder
+
+GOLANG_DOCKER_IMAGE := golang:1.19
+
+TEST_SAMPLE_CONTAINER_NAME := sample-override-test
 
 proto:
 	rm -rfv pkg/pb/*
@@ -16,7 +19,7 @@ proto:
 			--go_opt=paths=source_relative --go-grpc_out=pkg/pb \
 			--go-grpc_opt=paths=source_relative pkg/proto/*.proto
 
-lint: proto
+lint:
 	rm -f lint.err
 	find -type f -iname go.mod -not -path "*/.cache/*" -exec dirname {} \; | while read DIRECTORY; do \
 		echo "# $$DIRECTORY"; \
@@ -45,34 +48,46 @@ imagex_push:
 	docker buildx build -t ${REPO_URL}:${IMAGE_TAG} --platform linux/amd64 --push .
 	docker buildx rm --keep-state $(BUILDER)
 
-test_functional_local_hosted: proto
-	@test -n "$(ENV_PATH)" || (echo "ENV_PATH is not set"; exit 1)
-	docker build --tag lootbox-roll-function-test-functional -f test/functional/Dockerfile test/functional && \
-	docker run --rm -t \
-		--env-file $(ENV_PATH) \
-		-e GOCACHE=/data/.cache/go-build \
-		-e GOPATH=/data/.cache/mod \
-		-u $$(id -u):$$(id -g) \
-		-v $$(pwd):/data \
-		-w /data lootbox-roll-function-test-functional bash ./test/functional/test-local-hosted.sh
-
-test_functional_accelbyte_hosted: proto
-	@test -n "$(ENV_PATH)" || (echo "ENV_PATH is not set"; exit 1)
-ifeq ($(shell uname), Linux)
-	$(eval DARGS := -u $$(shell id -u):$$(shell id -g) --group-add $$(shell getent group docker | cut -d ':' -f 3))
-endif
-	docker build --tag lootbox-roll-function-test-functional -f test/functional/Dockerfile test/functional && \
-	docker run --rm -t \
-		--env-file $(ENV_PATH) \
-		-e GOCACHE=/data/.cache/go-build \
-		-e GOPATH=/data/.cache/mod \
-		-e DOCKER_CONFIG=/tmp/.docker \
-		$(DARGS) \
-		-v /var/run/docker.sock:/var/run/docker.sock \
-		-v $$(pwd):/data \
-		-w /data lootbox-roll-function-test-functional bash ./test/functional/test-accelbyte-hosted.sh
-
 ngrok:
 	@test -n "$(NGROK_AUTHTOKEN)" || (echo "NGROK_AUTHTOKEN is not set" ; exit 1)
 	docker run --rm -it --net=host -e NGROK_AUTHTOKEN=$(NGROK_AUTHTOKEN) ngrok/ngrok:3-alpine \
 			tcp 6565	# gRPC server port
+
+test_sample_local_hosted:
+	@test -n "$(ENV_PATH)" || (echo "ENV_PATH is not set"; exit 1)
+	docker build \
+			--tag $(TEST_SAMPLE_CONTAINER_NAME) \
+			-f test/sample/Dockerfile \
+			test/sample
+	docker run --rm -t \
+			-u $$(id -u):$$(id -g) \
+			-e GOCACHE=/data/.cache/go-build \
+			-e GOPATH=/data/.cache/mod \
+			--env-file $(ENV_PATH) \
+			-v $$(pwd):/data \
+			-w /data \
+			--name $(TEST_SAMPLE_CONTAINER_NAME) \
+			$(TEST_SAMPLE_CONTAINER_NAME) \
+			bash ./test/sample/test-local-hosted.sh
+
+test_sample_accelbyte_hosted:
+	@test -n "$(ENV_PATH)" || (echo "ENV_PATH is not set"; exit 1)
+ifeq ($(shell uname), Linux)
+	$(eval DARGS := -u $$(shell id -u) --group-add $$(shell getent group docker | cut -d ':' -f 3))
+endif
+	docker build \
+			--tag $(TEST_SAMPLE_CONTAINER_NAME) \
+			-f test/sample/Dockerfile \
+			test/sample
+	docker run --rm -t \
+			-e GOCACHE=/data/.cache/go-build \
+			-e GOPATH=/data/.cache/mod \
+			-e DOCKER_CONFIG=/tmp/.docker \
+			--env-file $(ENV_PATH) \
+			-v /var/run/docker.sock:/var/run/docker.sock \
+			-v $$(pwd):/data \
+			-w /data \
+			--name $(TEST_SAMPLE_CONTAINER_NAME) \
+			$(DARGS) \
+			$(TEST_SAMPLE_CONTAINER_NAME) \
+			bash ./test/sample/test-accelbyte-hosted.sh

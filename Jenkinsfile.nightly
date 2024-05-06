@@ -45,7 +45,7 @@ pipeline {
             withCredentials([file(credentialsId: 'extend-sample-app-integration-test-env', variable: 'ENV_PATH')]) {
               sh 'cat $ENV_PATH > tmp.env'
               sh "{ set +x; } 2>/dev/null; echo '+ echo -e ****'; printf '\n${params.ENV_VAR_OVERRIDE}' >> tmp.env"
-              sh 'make test_functional_sample_hosted ENV_PATH=tmp.env'
+              sh 'make test_sample_local_hosted ENV_PATH=tmp.env'
             }
           }
         }

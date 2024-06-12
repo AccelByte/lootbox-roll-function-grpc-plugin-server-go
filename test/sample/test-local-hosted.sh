@@ -15,7 +15,7 @@ trap clean_up EXIT
 
 echo '# Build and run Extend app locally'
 
-go build -o grpc-server
+go build -buildvcs=false -o grpc-server
 ./grpc-server & GRPC_SERVER_PID=$!
 
 (for _ in {1..12}; do bash -c "timeout 1 echo > /dev/tcp/127.0.0.1/8080" 2>/dev/null && exit 0 || sleep 5s; done; exit 1)

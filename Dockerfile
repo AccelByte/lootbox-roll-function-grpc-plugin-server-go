@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM rvolosatovs/protoc:4.0.0 as proto
+FROM --platform=$BUILDPLATFORM rvolosatovs/protoc:4.0.0 AS proto
 WORKDIR /build
 COPY pkg/proto pkg/proto
 RUN mkdir -p pkg/pb
@@ -7,7 +7,7 @@ RUN protoc --proto_path=pkg/proto --go_out=pkg/pb \
             --go-grpc_opt=paths=source_relative pkg/proto/*.proto
 
 
-FROM --platform=$BUILDPLATFORM golang:1.19-alpine as builder
+FROM --platform=$BUILDPLATFORM golang:1.19-alpine AS builder
 ARG TARGETOS
 ARG TARGETARCH
 WORKDIR /build

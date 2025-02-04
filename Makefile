@@ -30,7 +30,7 @@ lint:
 
 build: proto
 	docker run -t --rm -u $$(id -u):$$(id -g) -v $$(pwd):/data/ -w /data/ -e GOCACHE=/data/.cache/go-build $(GOLANG_DOCKER_IMAGE) \
-		sh -c "go build"
+		sh -c "go build -modcacherw"
 
 image:
 	docker buildx build -t ${IMAGE_NAME} --load .

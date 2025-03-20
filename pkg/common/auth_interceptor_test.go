@@ -5,52 +5,51 @@
 package common
 
 import (
-	"context"
-	"fmt"
-	"os"
-	"testing"
-
-	"github.com/AccelByte/accelbyte-go-sdk/iam-sdk/pkg/iamclient/o_auth2_0"
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/factory"
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/service/iam"
 	sdkAuth "github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/utils/auth"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 
-	"google.golang.org/grpc/metadata"
+	"testing"
 )
 
-func TestUnaryAuthServerIntercept(t *testing.T) {
-	t.Skip() // "TODO: mock the OAuth"
+func TestTokenValidator_ValidateToken(t *testing.T) {
+	t.Skip() // "TODO: mock and remove hardcoded client id and secret"
 
+	// Arrange
+	namespace := GetEnv("AB_NAMESPACE", "accelbyte")
+	clientId := ""
+	clientSecret := ""
 	configRepo := sdkAuth.DefaultConfigRepositoryImpl()
 	tokenRepo := sdkAuth.DefaultTokenRepositoryImpl()
-	OAuth = &iam.OAuth20Service{
+	authService := iam.OAuth20Service{
 		Client:           factory.NewIamClient(configRepo),
 		ConfigRepository: configRepo,
 		TokenRepository:  tokenRepo,
 	}
 
-	extendNamespace := os.Getenv("AB_NAMESPACE")
-	token, errToken := OAuth.TokenGrantV3Short(&o_auth2_0.TokenGrantV3Params{
-		ExtendNamespace: &extendNamespace,
-		GrantType:       o_auth2_0.TokenGrantV3UrnIetfParamsOauthGrantTypeExtendClientCredentialsConstant,
-	})
-	assert.Nil(t, errToken)
+	err := authService.LoginClient(&clientId, &clientSecret)
+	if err != nil {
+		assert.Fail(t, err.Error())
 
-	OAuth.SetLocalValidation(true)
-
-	md := map[string]string{
-		"authorization": fmt.Sprintf("Bearer %s", *token.AccessToken),
-	}
-	ctx := metadata.NewIncomingContext(context.Background(), metadata.New(md))
-
-	req := struct{}{}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return req, nil
+		return
 	}
 
-	// test
-	res, err := UnaryAuthServerIntercept(ctx, req, nil, handler)
+	accessToken, err := authService.GetToken()
+	if err != nil {
+		assert.Fail(t, err.Error())
+
+		return
+	}
+
+	Validator = NewTokenValidator(authService, time.Duration(600)*time.Second, true)
+	Validator.Initialize()
+
+	// Act
+	err = authService.Validate(accessToken, nil, &namespace, nil)
+
+	// Assert
 	assert.Nil(t, err)
-	assert.Equal(t, req, res)
 }

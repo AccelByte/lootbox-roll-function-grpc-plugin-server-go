@@ -15,6 +15,7 @@ import (
 	"os/signal"
 	"runtime"
 	"strings"
+	"time"
 	"syscall"
 
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/factory"
@@ -99,17 +100,18 @@ func main() {
 	// Preparing the IAM authorization
 	var tokenRepo repository.TokenRepository = sdkAuth.DefaultTokenRepositoryImpl()
 	var configRepo repository.ConfigRepository = sdkAuth.DefaultConfigRepositoryImpl()
-	var refreshRepo repository.RefreshTokenRepository = &sdkAuth.RefreshTokenImpl{AutoRefresh: true, RefreshRate: 0.01}
+	var refreshRepo repository.RefreshTokenRepository = &sdkAuth.RefreshTokenImpl{RefreshRate: 1.0, AutoRefresh: true}
+
+	oauthService := iam.OAuth20Service{
+		Client:                 factory.NewIamClient(configRepo),
+		TokenRepository:        tokenRepo,
+		RefreshTokenRepository: refreshRepo,
+		ConfigRepository:       configRepo,
+	}
 
 	if strings.ToLower(common.GetEnv("PLUGIN_GRPC_SERVER_AUTH_ENABLED", "false")) == "true" {
-		common.OAuth = &iam.OAuth20Service{
-			Client:                 factory.NewIamClient(configRepo),
-			ConfigRepository:       configRepo,
-			TokenRepository:        tokenRepo,
-			RefreshTokenRepository: refreshRepo,
-		}
-
-		common.OAuth.SetLocalValidation(true)
+		refreshInterval := common.GetEnvInt("REFRESH_INTERVAL", 600)
+		common.Validator = common.NewTokenValidator(oauthService, time.Duration(refreshInterval)*time.Second, true)
 
 		unaryServerInterceptors = append(unaryServerInterceptors, common.UnaryAuthServerIntercept)
 		streamServerInterceptors = append(streamServerInterceptors, common.StreamAuthServerIntercept)

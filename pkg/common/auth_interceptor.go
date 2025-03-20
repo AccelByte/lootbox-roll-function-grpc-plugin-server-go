@@ -6,17 +6,23 @@ package common
 
 import (
 	"context"
+	"crypto/rsa"
+	"encoding/base64"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/AccelByte/accelbyte-go-sdk/iam-sdk/pkg/iamclientmodels"
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/service/iam"
+	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/utils/auth/validator"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
-var OAuth *iam.OAuth20Service
+var Validator validator.AuthTokenValidator
 
 func UnaryAuthServerIntercept(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	if !skipCheckAuthorizationMetadata(info.FullMethod) {
@@ -55,7 +61,7 @@ func skipCheckAuthorizationMetadata(fullMethod string) bool {
 }
 
 func checkAuthorizationMetadata(ctx context.Context) error {
-	if OAuth == nil {
+	if Validator == nil {
 		return status.Error(codes.Internal, "authorization token validator is not set")
 	}
 
@@ -77,11 +83,28 @@ func checkAuthorizationMetadata(ctx context.Context) error {
 	token := strings.TrimPrefix(authorization, "Bearer ")
 	namespace := os.Getenv("AB_NAMESPACE")
 
-	err := OAuth.Validate(token, nil, &namespace, nil)
+	Validator.Initialize(ctx)
+	err := Validator.Validate(token, nil, &namespace, nil)
 
 	if err != nil {
 		return status.Error(codes.PermissionDenied, err.Error())
 	}
 
 	return nil
+}
+
+func NewTokenValidator(authService iam.OAuth20Service, refreshInterval time.Duration, validateLocally bool) validator.AuthTokenValidator {
+	return &validator.TokenValidator{
+		AuthService:     authService,
+		RefreshInterval: refreshInterval,
+
+		Filter:                nil,
+		JwkSet:                nil,
+		JwtClaims:             iam.JWTClaims{},
+		JwtEncoding:           *base64.URLEncoding.WithPadding(base64.NoPadding),
+		PublicKeys:            make(map[string]*rsa.PublicKey),
+		LocalValidationActive: validateLocally,
+		RevokedUsers:          make(map[string]time.Time),
+		Roles:                 make(map[string]*iamclientmodels.ModelRolePermissionResponseV3),
+	}
 }

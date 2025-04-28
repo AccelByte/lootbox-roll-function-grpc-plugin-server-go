@@ -9,8 +9,6 @@ BUILDER := extend-builder
 
 GOLANG_DOCKER_IMAGE := golang:1.19
 
-TEST_SAMPLE_CONTAINER_NAME := sample-override-test
-
 proto:
 	rm -rfv pkg/pb/*
 	mkdir -p pkg/pb

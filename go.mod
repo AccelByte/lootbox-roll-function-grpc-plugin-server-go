@@ -3,7 +3,7 @@ module lootbox-roll-function-grpc-plugin-server-go
 go 1.19
 
 require (
-	github.com/AccelByte/accelbyte-go-sdk v0.78.1-0.20250319093635-48d06e1a5166
+	github.com/AccelByte/accelbyte-go-sdk v0.80.0
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.0-rc.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.0-rc.5
 	github.com/prometheus/client_golang v1.15.1

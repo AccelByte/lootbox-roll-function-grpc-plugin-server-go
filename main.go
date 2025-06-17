@@ -15,8 +15,8 @@ import (
 	"os/signal"
 	"runtime"
 	"strings"
-	"time"
 	"syscall"
+	"time"
 
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/factory"
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/repository"
@@ -87,6 +87,7 @@ func main() {
 		logging.WithLevels(logging.DefaultClientCodeToLevel),
 		logging.WithDurationField(logging.DurationToDurationField),
 	}
+
 	srvMetrics := promgrpc.NewServerMetrics()
 	unaryServerInterceptors := []grpc.UnaryServerInterceptor{
 		srvMetrics.UnaryServerInterceptor(),
@@ -109,13 +110,13 @@ func main() {
 		ConfigRepository:       configRepo,
 	}
 
-	if strings.ToLower(common.GetEnv("PLUGIN_GRPC_SERVER_AUTH_ENABLED", "false")) == "true" {
+	if strings.ToLower(common.GetEnv("PLUGIN_GRPC_SERVER_AUTH_ENABLED", "true")) == "true" {
 		refreshInterval := common.GetEnvInt("REFRESH_INTERVAL", 600)
 		common.Validator = common.NewTokenValidator(oauthService, time.Duration(refreshInterval)*time.Second, true)
 
 		unaryServerInterceptors = append(unaryServerInterceptors, common.UnaryAuthServerIntercept)
 		streamServerInterceptors = append(streamServerInterceptors, common.StreamAuthServerIntercept)
-		logrus.Infof("added auth interceptors")
+		logrus.Info("added auth interceptors")
 	}
 
 	// Create gRPC Server

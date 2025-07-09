@@ -113,6 +113,7 @@ func main() {
 	if strings.ToLower(common.GetEnv("PLUGIN_GRPC_SERVER_AUTH_ENABLED", "true")) == "true" {
 		refreshInterval := common.GetEnvInt("REFRESH_INTERVAL", 600)
 		common.Validator = common.NewTokenValidator(oauthService, time.Duration(refreshInterval)*time.Second, true)
+		common.Validator.Initialize()
 
 		unaryServerInterceptors = append(unaryServerInterceptors, common.UnaryAuthServerIntercept)
 		streamServerInterceptors = append(streamServerInterceptors, common.StreamAuthServerIntercept)

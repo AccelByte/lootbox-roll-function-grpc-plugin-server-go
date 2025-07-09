@@ -83,7 +83,6 @@ func checkAuthorizationMetadata(ctx context.Context) error {
 	token := strings.TrimPrefix(authorization, "Bearer ")
 	namespace := os.Getenv("AB_NAMESPACE")
 
-	Validator.Initialize(ctx)
 	err := Validator.Validate(token, nil, &namespace, nil)
 
 	if err != nil {
@@ -94,7 +93,7 @@ func checkAuthorizationMetadata(ctx context.Context) error {
 }
 
 func NewTokenValidator(authService iam.OAuth20Service, refreshInterval time.Duration, validateLocally bool) validator.AuthTokenValidator {
-	return &validator.TokenValidator{
+	return &iam.TokenValidator{
 		AuthService:     authService,
 		RefreshInterval: refreshInterval,
 

@@ -101,7 +101,7 @@ func main() {
 	// Preparing the IAM authorization
 	var tokenRepo repository.TokenRepository = sdkAuth.DefaultTokenRepositoryImpl()
 	var configRepo repository.ConfigRepository = sdkAuth.DefaultConfigRepositoryImpl()
-	var refreshRepo repository.RefreshTokenRepository = &sdkAuth.RefreshTokenImpl{RefreshRate: 1.0, AutoRefresh: true}
+	var refreshRepo repository.RefreshTokenRepository = &sdkAuth.RefreshTokenImpl{RefreshRate: 0.8, AutoRefresh: true}
 
 	oauthService := iam.OAuth20Service{
 		Client:                 factory.NewIamClient(configRepo),
@@ -113,7 +113,10 @@ func main() {
 	if strings.ToLower(common.GetEnv("PLUGIN_GRPC_SERVER_AUTH_ENABLED", "true")) == "true" {
 		refreshInterval := common.GetEnvInt("REFRESH_INTERVAL", 600)
 		common.Validator = common.NewTokenValidator(oauthService, time.Duration(refreshInterval)*time.Second, true)
-		common.Validator.Initialize(ctx)
+		err := common.Validator.Initialize(ctx)
+		if err != nil {
+			logrus.Infof(err.Error())
+		}
 
 		unaryServerInterceptors = append(unaryServerInterceptors, common.UnaryAuthServerIntercept)
 		streamServerInterceptors = append(streamServerInterceptors, common.StreamAuthServerIntercept)

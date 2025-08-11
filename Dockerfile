@@ -7,7 +7,7 @@ RUN protoc --proto_path=pkg/proto --go_out=pkg/pb \
             --go-grpc_opt=paths=source_relative pkg/proto/*.proto
 
 
-FROM --platform=$BUILDPLATFORM golang:1.19-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.24-alpine3.22 AS builder
 ARG TARGETOS
 ARG TARGETARCH
 WORKDIR /build
@@ -18,7 +18,7 @@ COPY --from=proto /build/pkg/pb pkg/pb
 RUN env GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o loobox-roll-function-grpc-plugin-server-go_$TARGETOS-$TARGETARCH
 
 
-FROM alpine:3.19
+FROM alpine:3.22
 ARG TARGETOS
 ARG TARGETARCH
 WORKDIR /app

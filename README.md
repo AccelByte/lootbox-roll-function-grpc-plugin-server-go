@@ -97,14 +97,14 @@ your own logic for the custom functions.
          ...
          ```
 
-   d. Go v1.19
+   d. Go v1.24
 
       - Follow [Go's installation guide](https://go.dev/doc/install).
 
       ```
       go version
 
-      go version go1.19.0 ...
+      go version go1.24.0 ...
       ```
 
    e. [Postman](https://www.postman.com/)

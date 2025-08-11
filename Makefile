@@ -5,7 +5,7 @@
 SHELL := /bin/bash
 
 PROJECT_NAME := $(shell basename "$$(pwd)")
-GOLANG_IMAGE := golang:1.19
+GOLANG_IMAGE := golang:1.24
 
 BUILD_CACHE_VOLUME := $(shell echo '$(PROJECT_NAME)' | sed 's/[^a-zA-Z0-9_-]//g')-build-cache
 

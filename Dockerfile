@@ -2,7 +2,7 @@
 # This is licensed software from AccelByte Inc, for limitations
 # and restrictions contact your company contract manager.
 
-FROM --platform=$BUILDPLATFORM ubuntu:22.04
+FROM --platform=$BUILDPLATFORM ubuntu:22.04 AS proto-builder
 
 # Avoid warnings by switching to noninteractive
 ENV DEBIAN_FRONTEND=noninteractive
@@ -15,7 +15,7 @@ ARG GOARCH=$TARGETARCH
 
 ENV GOROOT=/usr/local/go
 ENV GOPATH=/go
-ENV PATH=$GOPATH/bin:$GOROOT/bin:$PATH
+ENV PATH=$GOPATH/bin/${TARGETOS}_${TARGETARCH}:$GOPATH/bin:$GOROOT/bin:$PATH
 
 ARG PROTOC_VERSION=21.9
 ARG GO_VERSION=1.24.10

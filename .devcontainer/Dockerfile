@@ -1,15 +1,13 @@
-# Copyright (c) 2025 AccelByte Inc. All Rights Reserved.
-# This is licensed software from AccelByte Inc, for limitations
-# and restrictions contact your company contract manager.
-
+# Development container for AccelByte LootBox Roll Function Plugin Server
 FROM --platform=$BUILDPLATFORM ubuntu:22.04
 
 # Avoid warnings by switching to noninteractive
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Set the value for the target OS and architecture.
+# Set up Go environment
 ARG TARGETOS
 ARG TARGETARCH
+
 ARG GOOS=$TARGETOS
 ARG GOARCH=$TARGETARCH
 
@@ -29,6 +27,7 @@ RUN apt-get update \
     build-essential \
     ca-certificates \
     git \
+    sudo \
     unzip \
     wget \
     #
@@ -65,42 +64,36 @@ RUN apt-get update \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
 
-# Set working directory.
-WORKDIR /build
+# Create a non-root user
+ARG USERNAME=vscode
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+
+# Create user group, user account, and configure passwordless sudo access
+RUN groupadd --gid $USER_GID $USERNAME \
+    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
+    && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
+    && chmod 0440 /etc/sudoers.d/$USERNAME
+
+# Create workspace and GOPATH directories
+RUN mkdir -p /workspace && chown $USERNAME:$USERNAME /workspace \
+    && mkdir -p /go && chown $USERNAME:$USERNAME /go
+
+# Switch to non-root user
+USER $USERNAME
+
+# Install Go Language Server (required by Go extension)
+RUN go install -v golang.org/x/tools/gopls@latest
+
+# Install Go Debugger
+RUN go install -v github.com/go-delve/delve/cmd/dlv@latest
 
 # Install protoc Go tools and plugins
-RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest \
-    && go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-
-# Copy proto sources and generator script
-COPY proto.sh .
-COPY pkg/proto/ pkg/proto/
-
-# Generate protobuf files.
-RUN chmod +x proto.sh && \
-    ./proto.sh
-
-# Copy and download the dependencies for application.
-COPY go.mod go.sum ./
-RUN go mod download
-
-# Copy application code.
-COPY . .
-
-# Build the Go application binary for the target OS and architecture.
-RUN go build -v -modcacherw -o /app/lootbox-roll-function-grpc-plugin-server-go
-
-# Set working directory.
-WORKDIR /app
-
-# Plugin Arch gRPC Server Port.
-EXPOSE 6565
-
-# Prometheus /metrics Web Server Port.
-EXPOSE 8080
+RUN go install -v google.golang.org/protobuf/cmd/protoc-gen-go@latest \
+    && go install -v google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
 # Switch back to dialog for any ad-hoc use of apt-get
 ENV DEBIAN_FRONTEND=dialog
 
-# Entrypoint.
-CMD [ "/app/lootbox-roll-function-grpc-plugin-server-go" ]
+WORKDIR /workspace
+

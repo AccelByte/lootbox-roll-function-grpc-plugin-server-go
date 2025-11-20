@@ -27,6 +27,7 @@ RUN apt-get update \
     build-essential \
     ca-certificates \
     git \
+    python3-pip \
     sudo \
     unzip \
     wget \
@@ -58,6 +59,9 @@ RUN apt-get update \
     && wget -O go.tar.gz https://go.dev/dl/go${GO_VERSION}.linux-${GOARCH_SUFFIX}.tar.gz \
     && tar -C /usr/local -xzf go.tar.gz \
     && rm go.tar.gz \
+    #
+    # Install additional tools
+    && pip3 install --no-cache-dir fillenv \
     #
     # Clean up
     && apt-get autoremove -y \

@@ -237,3 +237,6 @@ lootbox-roll-function-grpc-plugin-server-go
 
 .env*
 !.env.template
+
+.cache/
+.idea/

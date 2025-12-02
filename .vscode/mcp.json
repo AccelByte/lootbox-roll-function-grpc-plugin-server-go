@@ -9,7 +9,7 @@
         "--interactive",
         "--env", "TRANSPORT=stdio",
         "--env", "CONFIG_DIR=config/go",
-        "ghcr.io/accelbyte/ags-extend-sdk-mcp-server:2025.8.1"
+        "ghcr.io/accelbyte/ags-extend-sdk-mcp-server:2025.9.0"
       ]
     },
     "ags-api": {
@@ -22,7 +22,7 @@
         "--env", "AB_BASE_URL",
         "--env", "OAUTH_CLIENT_ID",
         "--env", "OAUTH_CLIENT_SECRET",
-        "ghcr.io/accelbyte/ags-api-mcp-server:2025.8.0"
+        "ghcr.io/accelbyte/ags-api-mcp-server:2025.9.0"
       ],
       "env": {
         "AB_BASE_URL": "",
@@ -32,4 +32,3 @@
     }
   }
 }
-

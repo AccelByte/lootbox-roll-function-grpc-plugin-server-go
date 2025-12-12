@@ -7,7 +7,6 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.0-rc.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.0-rc.5
 	github.com/prometheus/client_golang v1.16.0
-	github.com/sirupsen/logrus v1.9.3
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.49.0
 	go.opentelemetry.io/contrib/propagators/b3 v1.17.0
 	go.opentelemetry.io/otel v1.34.0
@@ -53,6 +52,7 @@ require (
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.10.1 // indirect
+	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/willf/bitset v1.1.11 // indirect
 	go.mongodb.org/mongo-driver v1.5.1 // indirect

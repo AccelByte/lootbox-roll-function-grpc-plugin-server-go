@@ -5,7 +5,7 @@ set -eou pipefail
 shopt -s globstar
 
 find_all_proto_files() {
-  find "${PROTO_DIR}" -maxdepth 1 -name "*.proto" -type f
+  find "${PROTO_DIR}" -name "*.proto" -type f
 }
 
 PROTO_DIR="${1:-pkg/proto}"

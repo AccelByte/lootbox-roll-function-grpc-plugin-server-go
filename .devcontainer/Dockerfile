@@ -1,4 +1,7 @@
-# Development container for AccelByte LootBox Roll Function Plugin Server
+# Copyright (c) 2025 AccelByte Inc. All Rights Reserved.
+# This is licensed software from AccelByte Inc, for limitations
+# and restrictions contact your company contract manager.
+
 FROM --platform=$BUILDPLATFORM ubuntu:22.04
 
 # Avoid warnings by switching to noninteractive
@@ -13,7 +16,7 @@ ARG GOARCH=$TARGETARCH
 
 ENV GOROOT=/usr/local/go
 ENV GOPATH=/go
-ENV PATH=$GOPATH/bin/${TARGETOS}_${TARGETARCH}:$GOPATH/bin:$GOROOT/bin:$PATH
+ENV PATH=$GOPATH/bin:$GOROOT/bin:$PATH
 
 ARG PROTOC_VERSION=21.9
 ARG GO_VERSION=1.24.10
@@ -43,12 +46,6 @@ RUN apt-get update \
         aarch64) echo "arm64" ;; \
         *) echo "amd64" ;; \
        esac) \
-    && OS_SUFFIX=$(case "${HOST_OS:-$(uname -s)}" in \
-        Linux) echo "linux" ;; \
-        Darwin) echo "darwin" ;; \
-        CYGWIN*|MINGW*|MSYS*) echo "windows" ;; \
-        *) echo "linux" ;; \
-        esac) \
     # Install Protocol Buffers compiler
     && wget -O protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-${ARCH_SUFFIX}.zip \
     && unzip protoc.zip -d /usr/local \
@@ -94,10 +91,11 @@ RUN go install -v github.com/go-delve/delve/cmd/dlv@latest
 
 # Install protoc Go tools and plugins
 RUN go install -v google.golang.org/protobuf/cmd/protoc-gen-go@latest \
-    && go install -v google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+    && go install -v google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest \
+    && go install -v github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@latest \
+    && go install -v github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest
 
 # Switch back to dialog for any ad-hoc use of apt-get
 ENV DEBIAN_FRONTEND=dialog
 
 WORKDIR /workspace
-

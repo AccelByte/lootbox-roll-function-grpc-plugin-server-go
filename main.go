@@ -25,7 +25,6 @@ import (
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"log/slog"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/contrib/propagators/b3"
 	"go.opentelemetry.io/otel"
@@ -35,6 +34,7 @@ import (
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
+	"log/slog"
 
 	"lootbox-roll-function-grpc-plugin-server-go/pkg/common"
 	pb "lootbox-roll-function-grpc-plugin-server-go/pkg/pb"
@@ -53,7 +53,7 @@ const (
 )
 
 var (
-	serviceName = common.GetEnv("OTEL_SERVICE_NAME", "LootBoxRollFunctionServiceGoServerDocker")
+	serviceName = "extend-app-lootbox-roll"
 	logLevelStr = common.GetEnv("LOG_LEVEL", "info")
 )
 
@@ -173,6 +173,9 @@ func main() {
 	logger.Info("serving prometheus metrics", "port", metricsPort, "endpoint", metricsEndpoint)
 
 	// Set Tracer Provider
+	if val := common.GetEnv("OTEL_SERVICE_NAME", ""); val != "" {
+		serviceName = "extend-app-lr-" + strings.ToLower(val)
+	}
 	tracerProvider, err := common.NewTracerProvider(serviceName, environment, id)
 	if err != nil {
 		logger.Error("failed to create tracer provider", "error", err)

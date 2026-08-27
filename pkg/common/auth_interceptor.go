@@ -65,6 +65,13 @@ func checkAuthorizationMetadata(ctx context.Context) error {
 		return status.Error(codes.Internal, "authorization token validator is not set")
 	}
 
+	// Without the IAM public keys every token is rejected with "public key not found", which is a
+	// property of this server and not of the caller's token. Report it as retryable unavailability
+	// so that callers are not misled into re-checking their own credentials.
+	if !IsValidatorReady() {
+		return status.Error(codes.Unavailable, "token validator not ready")
+	}
+
 	meta, found := metadata.FromIncomingContext(ctx)
 
 	if !found {

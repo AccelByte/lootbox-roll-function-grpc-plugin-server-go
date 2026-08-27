@@ -73,6 +73,22 @@ func parseLogLevel(levelStr string) slog.Level {
 	}
 }
 
+// requireEnv exits when any of the named environment variables is empty, naming all of the missing
+// ones at once so that a misconfigured deployment does not have to be fixed one restart at a time.
+func requireEnv(logger *slog.Logger, keys ...string) {
+	missing := make([]string, 0, len(keys))
+	for _, key := range keys {
+		if common.GetEnv(key, "") == "" {
+			missing = append(missing, key)
+		}
+	}
+
+	if len(missing) > 0 {
+		logger.Error("missing required environment variables", "missing", strings.Join(missing, ", "))
+		os.Exit(1)
+	}
+}
+
 func main() {
 	go func() {
 		runtime.SetBlockProfileRate(1)
@@ -90,6 +106,13 @@ func main() {
 	logger := slog.New(handler)
 
 	logger.Info("starting app server..")
+
+	// Echo the AGS environment this app talks to. Pointing at the wrong environment yields tokens
+	// signed by keys this app never fetched, and without this line that cause is invisible in logs.
+	logger.Info("accelbyte environment",
+		"AB_BASE_URL", common.GetEnv("AB_BASE_URL", "(unset)"),
+		"AB_NAMESPACE", common.GetEnv("AB_NAMESPACE", "(unset)"),
+	)
 
 	loggingOptions := []logging.Option{
 		logging.WithLogOnEvents(logging.PayloadSent),
@@ -155,20 +178,24 @@ func main() {
 		TokenRepository:        tokenRepo,
 		RefreshTokenRepository: refreshRepo,
 		ConfigRepository:       configRepo,
-
 	}
 
-	if strings.ToLower(common.GetEnv("PLUGIN_GRPC_SERVER_AUTH_ENABLED", "true")) == "true" {
+	// The validator is constructed here because the interceptors must be wired before the gRPC
+	// server is created, but it is initialized further below -- after the server is already
+	// listening -- so that health probes stay answerable while it retries.
+	authEnabled := strings.ToLower(common.GetEnv("PLUGIN_GRPC_SERVER_AUTH_ENABLED", "true")) == "true"
+	if authEnabled {
+		requireEnv(logger, "AB_BASE_URL", "AB_CLIENT_ID", "AB_CLIENT_SECRET", "AB_NAMESPACE")
+
 		refreshInterval := common.GetEnvInt("REFRESH_INTERVAL", 600)
 		common.Validator = common.NewTokenValidator(oauthService, time.Duration(refreshInterval)*time.Second, true)
-		err := common.Validator.Initialize(ctx)
-		if err != nil {
-			logger.Info("validator initialization error", "error", err.Error())
-		}
 
 		unaryServerInterceptors = append(unaryServerInterceptors, common.UnaryAuthServerIntercept)
 		streamServerInterceptors = append(streamServerInterceptors, common.StreamAuthServerIntercept)
 		logger.Info("added auth interceptors")
+	} else {
+		logger.Warn("gRPC server auth is disabled, every caller is trusted",
+			"env", "PLUGIN_GRPC_SERVER_AUTH_ENABLED=false")
 	}
 
 	// Create gRPC Server
@@ -186,8 +213,13 @@ func main() {
 	reflection.Register(grpcServer)
 	logger.Info("gRPC reflection enabled")
 
-	// Enable gRPC Health Check
-	grpc_health_v1.RegisterHealthServer(grpcServer, health.NewServer())
+	// Enable gRPC Health Check. health.NewServer seeds the overall status as SERVING, so both
+	// statuses are reset immediately: until the token validator holds the IAM public keys every RPC
+	// is rejected, and reporting SERVING through that would keep a broken pod in rotation.
+	healthServer := health.NewServer()
+	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_NOT_SERVING)
+	healthServer.SetServingStatus(pb.LootBox_ServiceDesc.ServiceName, grpc_health_v1.HealthCheckResponse_NOT_SERVING)
+	grpc_health_v1.RegisterHealthServer(grpcServer, healthServer)
 
 	// Register Prometheus Metrics
 	srvMetrics.InitializeMetrics(grpcServer)
@@ -220,6 +252,28 @@ func main() {
 		}
 	}()
 	logger.Info("gRPC server started")
+
+	markServing := func() {
+		healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
+		healthServer.SetServingStatus(pb.LootBox_ServiceDesc.ServiceName, grpc_health_v1.HealthCheckResponse_SERVING)
+		logger.Info("health status set to SERVING")
+	}
+
+	if authEnabled {
+		// Retry in the background: a failed Initialize leaves the validator with no public keys and
+		// nothing scheduled to refetch them, so without this a transient IAM failure at startup
+		// would reject every token for the lifetime of the process.
+		go func(ctx context.Context) {
+			common.InitializeValidatorWithRetry(ctx, common.Validator, logger)
+			if common.IsValidatorReady() {
+				markServing()
+			}
+		}(ctx)
+	} else {
+		common.SetValidatorReady(true)
+		markServing()
+	}
+
 	logger.Info("app server started")
 
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)

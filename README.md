@@ -389,6 +389,56 @@ After completing testing, the next step is to deploy your app to `AccelByte Gami
    - Select the image you just pushed
    - Click **Deploy Image**
 
+## Troubleshooting
+
+### `PERMISSION_DENIED: public key not found`
+
+Calls that reach this app fail with `PERMISSION_DENIED` and the message `public key not found`, so
+every loot box roll fails (in AGS this surfaces as a failing entitlement `decrement`).
+
+Despite the status code, this is almost never a problem with the caller or with its token. It means
+this app never loaded the IAM public keys it needs in order to verify tokens, which happens when it
+cannot log in with its own client credentials or cannot reach IAM at startup. A pod in that state
+reports `NOT_SERVING` on its gRPC health check and answers RPCs with `UNAVAILABLE`
+(`token validator not ready`) rather than `PERMISSION_DENIED`.
+
+Work through these in order.
+
+1. **Read the startup logs.** The first lines echo the environment this app talks to:
+
+   ```json
+   {"level":"INFO","msg":"accelbyte environment","AB_BASE_URL":"https://test.accelbyte.io","AB_NAMESPACE":"mygame"}
+   ```
+
+   If initialization is failing, one `ERROR` line per attempt names the stage that failed:
+
+   ```json
+   {"level":"ERROR","msg":"token validator initialization failed","attempt":3,"retryIn":"4s","error":"error initializing validator: ..."}
+   ```
+
+   A client-credentials failure points at step 2; a JWKS or network failure points at step 3.
+   Initialization is retried with backoff, so the app recovers on its own once the cause is fixed —
+   no restart needed.
+
+2. **Check the credentials.** In the **Admin Portal**, open your Extend Override app →
+   **Environment Configuration** → **Secrets**, and confirm `AB_CLIENT_ID` and `AB_CLIENT_SECRET`
+   belong to a **confidential** OAuth client in the same namespace and environment, and have not
+   been rotated. A public client, or a client from another namespace or environment, fails here.
+
+3. **Do not override `AB_BASE_URL` or `AB_NAMESPACE`.** AGS injects both for cloud-deployed Extend
+   apps. Overriding them points this app at a different environment, so the tokens it receives are
+   signed by keys it never fetched.
+
+4. **Redeploy or restart.** If the cause was a transient IAM or network failure at startup, this
+   clears it outright.
+
+5. **Confirm the diagnosis, for triage only.** Setting `PLUGIN_GRPC_SERVER_AUTH_ENABLED=false` makes
+   the calls succeed, which proves the failure is in token validation rather than in the roll logic.
+
+   > :warning: **Never leave `PLUGIN_GRPC_SERVER_AUTH_ENABLED=false` in production**: it disables
+   gRPC access token validation entirely, so any caller is trusted. The app logs a `WARN` line on
+   startup while it is set.
+
 ## Next Step
 
 Proceed by modifying this `Extend Override` app template to implement your own custom logic. For more details, see [here](https://docs.accelbyte.io/gaming-services/modules/foundations/extend/override/loot-box-roll/customize-loot-box-roll/).

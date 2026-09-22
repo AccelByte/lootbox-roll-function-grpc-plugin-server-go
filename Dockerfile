@@ -103,7 +103,7 @@ RUN go build -v -modcacherw -o /output/$TARGETOS/$TARGETARCH/lootbox-roll-functi
 # ----------------------------------------
 # Stage 3: Runtime Container
 # ----------------------------------------
-FROM alpine:3.22
+FROM public.ecr.aws/c0i0b4n8/accelbyte/base-images/alpine-3.23:1.0.1
 
 # Set the value for the target OS and architecture.
 ARG TARGETOS

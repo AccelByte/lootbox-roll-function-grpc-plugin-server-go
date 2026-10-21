@@ -5,7 +5,7 @@
 SHELL := /bin/bash
 
 PROJECT_NAME := $(shell basename "$$(pwd)")
-GOLANG_IMAGE := golang:1.24
+GOLANG_IMAGE := golang:1.26
 PROTOC_IMAGE := proto-builder
 
 IS_INSIDE_DEVCONTAINER := $(REMOTE_CONTAINERS)

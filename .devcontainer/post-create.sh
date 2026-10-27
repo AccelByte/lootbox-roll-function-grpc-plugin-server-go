@@ -3,29 +3,30 @@ set -e
 
 echo "🚀 Setting up development environment..."
 
-# Install Extend Helper CLI
-EXTEND_HELPER_CLI_VERSION="0.0.9"
-echo "📥 Installing Extend Helper CLI..."
+# Install AGS CLI. CARGO_HOME keeps the cargo-dist installer from dropping
+# the binary in ~/.cargo/bin. The devcontainer shell is bash, so the PATH
+# line has to live in ~/.bashrc or later terminals cannot find ags.
+echo "📥 Installing AGS CLI..."
 
-GOARCH_SUFFIX=$(case "$(uname -m)" in
-    x86_64) echo "amd64" ;;
-    aarch64) echo "arm64" ;;
-    *) echo "amd64" ;;
-esac)
-
-OS_SUFFIX=$(case "${HOST_OS:-$(uname -s)}" in
-    Linux) echo "linux" ;;
-    Darwin) echo "darwin" ;;
-    CYGWIN*|MINGW*|MSYS*) echo "windows" ;;
-    *) echo "linux" ;;
-esac)
-
-if [ ! -f /usr/local/bin/extend-helper-cli ]; then
-    sudo wget -O /usr/local/bin/extend-helper-cli https://github.com/AccelByte/extend-helper-cli/releases/download/v${EXTEND_HELPER_CLI_VERSION}/extend-helper-cli-${OS_SUFFIX}_${GOARCH_SUFFIX}
-    sudo chmod +x /usr/local/bin/extend-helper-cli
-    echo "✅ Extend Helper CLI installed"
+export CARGO_HOME="$HOME/.ags-cli"
+mkdir -p "$CARGO_HOME"
+if ! command -v ags >/dev/null 2>&1 && [ ! -x "$CARGO_HOME/bin/ags" ]; then
+    set -o pipefail
+    curl --proto '=https' --tlsv1.2 -LsSf \
+        https://github.com/AccelByte/accelbyte-ags-cli/releases/latest/download/accelbyte-ags-cli-installer.sh \
+        | sh
+    set +o pipefail
+    echo "✅ AGS CLI installed"
 else
-    echo "✅ Extend Helper CLI already installed"
+    echo "✅ AGS CLI already installed"
+fi
+
+path_line='export PATH="$HOME/.ags-cli/bin:$PATH"'
+touch "$HOME/.bashrc"
+grep -qxF "$path_line" "$HOME/.bashrc" || printf '\n%s\n' "$path_line" >> "$HOME/.bashrc"
+
+if [ -x "$CARGO_HOME/bin/ags" ]; then
+    sudo ln -sfn "$CARGO_HOME/bin/ags" /usr/local/bin/ags
 fi
 
 # Install Go dependencies

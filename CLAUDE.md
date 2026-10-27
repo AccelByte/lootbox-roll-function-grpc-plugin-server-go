@@ -24,7 +24,7 @@ There are no tests in this repo. Testing is manual, via the Postman gRPC collect
 `demo/lootbox-roll-function-demo.postman_collection.json` — see README "Testing" for the
 sample request/response and the ngrok/pinggy tunnel setup for testing against a live AGS environment.
 
-Deployment uses `extend-helper-cli` (`image-upload`, `deploy-app`, `start-app`); `.vscode/tasks.json`
+Deployment uses `ags extend` (`ags extend image-upload`, `ags extend deploy-app`, `ags extend start-app`); `.vscode/tasks.json`
 wraps each of those as a VS Code task.
 
 ## Architecture
